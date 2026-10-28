@@ -14,11 +14,6 @@ The emphasis is on **clear numerical methods, explicit simulation
 outcomes, modular design, and testable behavior**, not full SPICE
 compatibility.
 
-<!-- Replace the path below with the repository's actual logo path. -->
-<p align="center">
-  <img src="assets/logos/circuitsim-logo.png" alt="CircuitSim logo" width="300">
-</p>
-
 ------------------------------------------------------------------------
 
 ## Table of Contents
@@ -220,7 +215,7 @@ failures that occur after analysis begins.
 In linear form, the modified nodal analysis system can be represented
 as:
 
-$$
+```math
 \begin{bmatrix}
 G & B \\
 B^T & 0
@@ -234,8 +229,7 @@ i_V
 j \\
 e
 \end{bmatrix}
-$$
-
+```
 where:
 
 -   $G$ represents nodal conductance contributions.
@@ -289,18 +283,16 @@ using fixed time steps. The initial release supports:
 
 For a capacitor, the Backward Euler discretization is:
 
-$$
+```math
 i_{C,n} = \frac{C}{h}(v_{C,n} - v_{C,n-1})
-$$
-
+```
 where $C$ is capacitance and $h$ is the time-step size.
 
 The trapezoidal discretization is:
 
-$$
+```math
 i_{C,n} = \frac{2C}{h}(v_{C,n} - v_{C,n-1}) - i_{C,n-1}
-$$
-
+```
 The corresponding inductor equations use the inductor's current and
 voltage history.
 
