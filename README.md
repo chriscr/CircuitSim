@@ -14,6 +14,11 @@ The emphasis is on **clear numerical methods, explicit simulation
 outcomes, modular design, and testable behavior**, not full SPICE
 compatibility.
 
+<!-- Replace the path below with the repository's actual logo path. -->
+<p align="center">
+  <img src="assets/logos/circuitsim-logo.png" alt="CircuitSim logo" width="300">
+</p>
+
 ------------------------------------------------------------------------
 
 ## Table of Contents
