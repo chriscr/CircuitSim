@@ -1,0 +1,6 @@
+* RC step response: tau = R*C = 1 ms
+V1 in 0 PULSE(0 5 0 0 0 10m 20m)
+R1 in out 1k
+C1 out 0 1u
+.TRAN 100u 5m
+.END

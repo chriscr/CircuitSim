@@ -1,0 +1,28 @@
+package com.circuitsim.engine;
+
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+import java.util.regex.*;
+import static com.circuitsim.engine.CircuitSimEngine.*;
+
+/** Strict parser for the documented CircuitSim netlist subset. */
+public final class NetlistParser {
+    public record Parsed(CircuitModel circuit, AnalysisRequest request) {}
+    private static final Pattern NUMBER=Pattern.compile("^([+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?)(meg|[tgkmunpf])?$",Pattern.CASE_INSENSITIVE);
+    public Parsed parse(Path path) throws IOException { return parse(Files.readString(path)); }
+    public Parsed parse(String input) {
+        List<Component> cs=new ArrayList<>(); Set<String> nodes=new TreeSet<>();nodes.add("0");Set<String> ids=new HashSet<>();AnalysisRequest req=AnalysisRequest.dc();boolean hasTran=false,ended=false,hasEnd=false;String[] lines=input.split("\\R",-1);
+        for(int z=0;z<lines.length;z++){String raw=lines[z],s=raw.trim();int ln=z+1;if(s.isEmpty()||s.startsWith("*"))continue;if(ended)throw error("NETLIST_SYNTAX_ERROR","No statements may follow .END",ln);String upper=s.toUpperCase(Locale.ROOT);if(upper.equals(".END")){ended=true;hasEnd=true;continue;}
+            s=s.replaceAll("(?i)PULSE\\(","PULSE (");String[] t=s.split("\\s+");if(t[0].equalsIgnoreCase(".TRAN")){if(hasTran)throw error("DUPLICATE_TRAN","Only one .TRAN directive is allowed",ln);if(t.length!=3)throw error("NETLIST_SYNTAX_ERROR",".TRAN requires exactly TSTEP and TSTOP",ln);double step=num(t[1],ln),stop=num(t[2],ln);if(step<=0||stop<=0)throw error("INVALID_TRAN_SETTINGS",".TRAN values must be positive",ln);req=AnalysisRequest.transientAnalysis(step,stop,Method.TRAPEZOIDAL);hasTran=true;continue;}
+            if(t[0].startsWith("."))throw error("UNSUPPORTED_DIRECTIVE","Unsupported directive: "+t[0],ln);
+            if(t[0].length()<2)throw error("NETLIST_SYNTAX_ERROR","Invalid component statement",ln);String id=t[0],key=id.toUpperCase(Locale.ROOT);if(!id.matches("[A-Za-z][A-Za-z0-9_]*"))throw error("NETLIST_SYNTAX_ERROR","Invalid component identifier: "+id,ln);if(!ids.add(key))throw error("DUPLICATE_COMPONENT","Duplicate component identifier "+id,ln);Kind k;try{k=Kind.valueOf(key.substring(0,1));}catch(Exception e){throw error("UNSUPPORTED_COMPONENT","Unsupported component prefix: "+id,ln);}if(t.length<(key.startsWith("D")?3:4))throw error("NETLIST_SYNTAX_ERROR","Component requires identifier, two nodes and a value/source definition",ln);String n1=normNode(t[1],ln),n2=normNode(t[2],ln);nodes.add(n1);nodes.add(n2);double v=0;Waveform w=null;
+            switch(k){case R,C,L->{if(t.length!=4)throw error("NETLIST_SYNTAX_ERROR",id+" requires exactly one value",ln);v=num(t[3],ln);if(v<=0)throw error("INVALID_COMPONENT_VALUE",id+" must be positive",ln);}case D->{if(t.length!=3)throw error("NETLIST_SYNTAX_ERROR","Diode syntax is Dname anode cathode",ln);}case V,I->{if(t.length<5)throw error("NETLIST_SYNTAX_ERROR",id+" requires an explicit DC, STEP or PULSE waveform",ln);String type=t[3].toUpperCase(Locale.ROOT);if(type.equals("DC")){if(t.length!=5)throw error("NETLIST_SYNTAX_ERROR","DC source requires one value",ln);w=new Waveform("DC",num(t[4],ln),num(t[4],ln),0,0,0,0,0);}else if(type.equals("STEP")){if(t.length!=7)throw error("NETLIST_SYNTAX_ERROR","STEP syntax: STEP V1 V2 TD",ln);w=new Waveform("STEP",num(t[4],ln),num(t[5],ln),num(t[6],ln),0,0,0,0);}else if(type.equals("PULSE")){String joined=String.join(" ",Arrays.copyOfRange(t,4,t.length));if(!joined.startsWith("(")||!joined.endsWith(")"))throw error("NETLIST_SYNTAX_ERROR","PULSE parameters must be enclosed in parentheses",ln);String inner=joined.substring(1,joined.length()-1).trim();String[] a=inner.split("\\s+");if(a.length!=7)throw error("NETLIST_SYNTAX_ERROR","PULSE requires seven whitespace-separated values",ln);double[] p=new double[7];for(int i=0;i<7;i++)p[i]=num(a[i],ln);if(p[2]<0||p[3]<0||p[4]<0||p[5]<=0||p[6]<=0||p[3]+p[5]+p[4]>p[6])throw error("INVALID_WAVEFORM","Invalid PULSE timing constraints",ln);w=new Waveform("PULSE",p[0],p[1],p[2],p[3],p[4],p[5],p[6]);}else throw error("UNSUPPORTED_WAVEFORM","Unsupported waveform: "+type,ln);}}
+            cs.add(new Component(id,k,n1,n2,v,w));
+        }
+        if(!hasEnd)throw error("NETLIST_SYNTAX_ERROR","Exactly one .END terminator is required",lines.length);return new Parsed(new CircuitModel(cs,nodes),req);
+    }
+    private static String normNode(String n,int ln){if(!n.matches("[A-Za-z0-9_]+"))throw error("NETLIST_SYNTAX_ERROR","Invalid node identifier: "+n,ln);return n.equals("0")?"0":n.toUpperCase(Locale.ROOT);}
+    private static double num(String s,int ln){Matcher m=NUMBER.matcher(s);if(!m.matches())throw error("INVALID_NUMBER","Invalid numeric token: "+s,ln);double x;try{x=Double.parseDouble(m.group(1));}catch(NumberFormatException e){throw error("INVALID_NUMBER","Invalid numeric token: "+s,ln);}boolean lexicalNonzero;try{lexicalNonzero=new java.math.BigDecimal(m.group(1)).signum()!=0;}catch(NumberFormatException e){throw error("INVALID_NUMBER","Invalid numeric token: "+s,ln);}if(lexicalNonzero&&x==0)throw error("INVALID_NUMBER","Numeric token underflows: "+s,ln);String suf=m.group(2);double mult=1;if(suf!=null)mult=switch(suf.toLowerCase(Locale.ROOT)){case "t"->1e12;case "g"->1e9;case "meg"->1e6;case "k"->1e3;case "m"->1e-3;case "u"->1e-6;case "n"->1e-9;case "p"->1e-12;case "f"->1e-15;default->1;};double y=x*mult;if(!Double.isFinite(y)||x!=0&&y==0)throw error("INVALID_NUMBER","Numeric token overflows or underflows: "+s,ln);return y;}
+    private static SimulationException error(String c,String m,int ln){return new SimulationException(c,"line "+ln+": "+m);}
+}
