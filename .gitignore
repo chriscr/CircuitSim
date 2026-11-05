@@ -1,0 +1,42 @@
+
+# Maven build output
+target/
+**/target/
+
+# Java
+*.class
+*.jar
+*.war
+hs_err_pid*
+
+# Node.js dependencies
+**/node_modules/
+
+# Frontend build output
+**/dist/
+
+# TypeScript incremental build metadata
+*.tsbuildinfo
+
+# Maven Shade generated POM
+dependency-reduced-pom.xml
+
+# Logs
+*.log
+
+# IDE configuration
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
