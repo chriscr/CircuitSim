@@ -7,7 +7,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class WebConfiguration implements WebMvcConfigurer {
-    @Value("${circuitsim.cors-origin:http://localhost:5173}")
+    @Value("${circuitsim.cors-origin:http://localhost:3000}")
     private String corsOrigin;
 
     @Override

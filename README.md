@@ -560,15 +560,15 @@ The 54-sample browser observation is distinct from the 51-sample API RC example 
 
 Backend:
 
-- Java Development Kit 25.
+- Java Development Kit (the recorded verification environment used JDK 25.0.5).
 - Apache Maven (the recorded verification environment used Maven 3.9.6).
 
 The approved Java project target is **Java 25**.
 
 Frontend:
 
-- Node.js.
-- npm.
+- Node.js (the recorded verification environment used 24.11.1).
+- npm (the recorded verification environment used 11.6.2).
 
 Check the active toolchain:
 
@@ -623,7 +623,7 @@ To run it on port 8081 (the port used during verification while external Tomcat 
 
 ```cmd
 set "CIRCUITSIM_PORT=8081"
-java -jar circuitsim-api\\target\\circuitsim-api-1.0.0-SNAPSHOT-exec.jar
+java -jar circuitsim-api\\target\\circuitsim-api-1.0.0-SNAPSHOT-exec.jar --circuitsim.cors-origin=http://localhost:3000
 ```
 
 The API is then available at `http://localhost:8081`. For example, the health endpoint is `http://localhost:8081/api/health`.
@@ -632,7 +632,7 @@ To use the default port instead, set `CIRCUITSIM_PORT=8080` or leave the variabl
 
 ### Run the external Tomcat WAR deployment
 
-The WAR artifact is `circuitsim-api.war`. Deploy it to the external Tomcat instance using the deployment procedure for that Tomcat installation. The verified deployment used Tomcat 11.0.27 and the `/circuitsim` context, with the server listening on port 8080.
+The WAR artifact is `circuitsim.war`. Deploy it to the external Tomcat instance using the deployment procedure for that Tomcat installation. The verified deployment used Tomcat 11.0.27 and the `/circuitsim` context, with the server listening on port 8080.
 
 With that deployment, the API base URL is `http://localhost:8080/circuitsim`; for example, the health endpoint is `http://localhost:8080/circuitsim/api/health`.
 
@@ -664,6 +664,7 @@ npm run dev
 For the external Tomcat WAR deployment on port 8080, use this proxy target instead:
 
 ```cmd
+cd circuitsim-web
 set "CIRCUITSIM_API_TARGET=http://localhost:8080/circuitsim"
 npm run dev
 ```
